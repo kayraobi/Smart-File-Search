@@ -1,35 +1,34 @@
-use std::fs;
-use std::path::Path;
+mod walker;
+mod indexer;
+mod ai;
+mod db;
 
-fn main() {
-    recursive_file_search(Path::new(
-        "/Users/kayra/Documents/GitHub/Smart-File-Search/Smart-File-Search/test_folder",
-    ));
-}
+use std::io::{self, Write};
 
-fn recursive_file_search(path: &Path) {
-    let entries = match fs::read_dir(path) {
-        Ok(e) => e,
-        Err(e) => {
-            eprintln!("Error reading {:?}: {}", path, e);
-            return;
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let ai = ai::AiHandler::new()?;
+    let db = db::DbHandler::new()?;
+
+    indexer::update_index(&ai, &db).await?;
+
+    loop {
+        println!("\n--------------------------------");
+        print!("Search query (or type 'exit' to quit): ");
+        io::stdout().flush()?;
+
+        let mut query = String::new();
+        io::stdin().read_line(&mut query)?;
+        let query = query.trim();
+
+        if query == "exit" {
+            break;
         }
-    };
 
-    for entry in entries {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error entry: {}", e);
-                continue;
-            }
-        };
-
-        let p = entry.path();
-        println!("{:?}", p);
-
-        if p.is_dir() {
-            recursive_file_search(&p);
+        if !query.is_empty() {
+            indexer::search_and_open(&ai, &db, query)?;
         }
     }
+
+    Ok(())
 }
