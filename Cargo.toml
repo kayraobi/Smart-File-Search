@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 walkdir = "2"
+rusqlite = { version = "0.38.0", features = ["bundled"] }
+sqlite-vec = "0.1.6"
+zerocopy = "0.8.31"
+fastembed = "5.5.0"
