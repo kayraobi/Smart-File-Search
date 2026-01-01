@@ -1,9 +1,6 @@
-# macOS
-.DS_Store
-**/.DS_Store
-
-# Rust
 target/
-
-# JetBrains / IntelliJ
+data/
+.fastembed_cache/
+*.db
 .idea/
+.DS_Store
