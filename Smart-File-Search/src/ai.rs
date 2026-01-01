@@ -18,8 +18,6 @@ impl AiHandler {
             },
             Err(error) => {
                 eprintln!("Error loading model!");
-                // DÜZELTME: anyhow::Error::new() kaldirildi.
-                // Zaten 'error' bir anyhow::Error oldugu icin direkt gonderiyoruz.
                 Err(error)
             }
         }
@@ -33,7 +31,6 @@ impl AiHandler {
                 Ok(embeddings[0].clone())
             },
             Err(e) => {
-                // DÜZELTME: Direkt hatayi donuyoruz
                 Err(e)
             },
         }
@@ -44,7 +41,6 @@ impl AiHandler {
         match result {
             Ok(embeddings) => Ok(embeddings),
             Err(e) => {
-                // DÜZELTME: Direkt hatayi donuyoruz
                 Err(e)
             },
         }
