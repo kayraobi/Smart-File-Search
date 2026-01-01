@@ -1,35 +1,49 @@
-use std::fs;
-use std::path::Path;
+#![allow(dead_code)]
+use std::{env, error::Error, fmt::Debug, path::PathBuf, time::SystemTime};
+use walkdir::{DirEntry, WalkDir};
 
-fn main() {
-    recursive_file_search(Path::new(
-        "/Users/kayra/Documents/GitHub/Smart-File-Search/Smart-File-Search/test_folder",
-    ));
+struct FileMetadate {
+    file_name: String,
+    path: PathBuf,
+    created: SystemTime,
+    len: u64
 }
 
-fn recursive_file_search(path: &Path) {
-    let entries = match fs::read_dir(path) {
-        Ok(e) => e,
-        Err(e) => {
-            eprintln!("Error reading {:?}: {}", path, e);
-            return;
-        }
-    };
-
-    for entry in entries {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(e) => {
-                eprintln!("Error entry: {}", e);
-                continue;
-            }
-        };
-
-        let p = entry.path();
-        println!("{:?}", p);
-
-        if p.is_dir() {
-            recursive_file_search(&p);
-        }
+impl Debug for FileMetadate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} in \t{}", self.file_name, self.path.display())
     }
 }
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with("."))
+        .unwrap_or(false)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut db = vec![];
+    let path = env::current_dir()?;
+    println!("Searching path: {}", path.display());
+
+    let walker = WalkDir::new(path).into_iter();
+    for entry in walker
+        .filter_entry(|e| !is_hidden(e) )
+        .filter_map(|e| e.ok())
+    {
+        let metadata = entry.metadata()?;
+        if metadata.is_file() {
+            db.push(FileMetadate {
+                file_name: entry.path().file_name().unwrap().to_string_lossy().into_owned(),
+                path: entry.path().to_path_buf(),
+                created: metadata.created()?,
+                len: metadata.len(),
+            });
+            println!("{:?}", db.last().unwrap());
+        }
+    }
+    Ok(())
+}
+
