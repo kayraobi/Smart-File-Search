@@ -4,16 +4,21 @@ use std::io::{self, Write};
 
 pub async fn update_index(ai: &ai::AiHandler, db: &db::DbHandler) -> anyhow::Result<()> {
     let start_time = Instant::now();
-    let path = dirs::download_dir().unwrap().to_str().unwrap().to_string();
+
+    let download_dir = dirs::download_dir().unwrap();
+    let path = download_dir.to_str().unwrap().to_string();
+
     println!("Scanning folder: {}", path);
 
     let files = walker::get_file_list(&path);
     let total_files = files.len();
     println!("Found {} files. Preparing batch processing...", total_files);
 
-    let file_names: Vec<String> = files.iter()
-        .map(|f| f.to_string_lossy().to_string())
-        .collect();
+    let mut file_names: Vec<String> = Vec::new();
+    for file in files {
+        let name_string = file.to_string_lossy().to_string();
+        file_names.push(name_string);
+    }
 
     println!("Sending to AI (Batch Mode)...");
     let vectors = ai.get_embeddings_batch(file_names.clone())?;
@@ -33,14 +38,19 @@ pub fn search_and_open(ai: &ai::AiHandler, db: &db::DbHandler, query_text: &str)
     let query_vec = ai.get_embedding(query_text)?;
     let all_files = db.get_all_files()?;
 
-    let mut results: Vec<(f32, String)> = all_files.into_iter().map(|(path, vec)| {
+    let mut results: Vec<(f32, String)> = Vec::new();
+
+    for (path, vec) in all_files {
         let score = ai.similarity_score(&query_vec, &vec);
-        (score, path)
-    }).collect();
+        results.push((score, path));
+    }
 
     results.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
 
-    let top_results: Vec<&(f32, String)> = results.iter().take(3).collect();
+    let mut top_results: Vec<&(f32, String)> = Vec::new();
+    for item in results.iter().take(3) {
+        top_results.push(item);
+    }
 
     if top_results.is_empty() {
         println!("No matching files found.");
@@ -59,18 +69,23 @@ pub fn search_and_open(ai: &ai::AiHandler, db: &db::DbHandler, query_text: &str)
     io::stdin().read_line(&mut selection)?;
     let selection = selection.trim();
 
-    if let Ok(index) = selection.parse::<usize>() {
-        if index > 0 && index <= top_results.len() {
-            let selected_file = &top_results[index - 1].1;
-            println!("Opening: {}", selected_file);
-            opener::open(selected_file)?;
-        } else if index == 0 {
-            println!("Selection cancelled.");
-        } else {
-            println!("Invalid selection.");
+    let parse_result = selection.parse::<usize>();
+
+    match parse_result {
+        Ok(index) => {
+            if index > 0 && index <= top_results.len() {
+                let selected_file = &top_results[index - 1].1;
+                println!("Opening: {}", selected_file);
+                opener::open(selected_file)?;
+            } else if index == 0 {
+                println!("Selection cancelled.");
+            } else {
+                println!("Invalid selection.");
+            }
+        },
+        Err(_) => {
+            println!("Invalid input. Please enter a number.");
         }
-    } else {
-        println!("Invalid input. Please enter a number.");
     }
 
     Ok(())

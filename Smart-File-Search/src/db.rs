@@ -7,15 +7,24 @@ pub struct DbHandler {
 
 impl DbHandler {
     pub fn new() -> anyhow::Result<Self> {
-        let conn = Connection::open("my_files.db")?;
+        let connection_result = Connection::open("my_files.db");
 
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS files (
+        let conn = match connection_result {
+            Ok(c) => c,
+            Err(e) => return Err(anyhow::Error::new(e)),
+        };
+
+        let create_table_sql = "
+            CREATE TABLE IF NOT EXISTS files (
                 path TEXT NOT NULL,
                 vector TEXT NOT NULL
-            )",
-            [],
-        )?;
+            )
+        ";
+
+        if let Err(e) = conn.execute(create_table_sql, []) {
+            eprintln!("Could not create table: {}", e);
+            return Err(anyhow::Error::new(e));
+        }
 
         Ok(Self { conn: Mutex::new(conn) })
     }
@@ -27,9 +36,13 @@ impl DbHandler {
 
         let mut stmt = conn.prepare("INSERT INTO files (path, vector) VALUES (?1, ?2)")?;
 
-        for (path, vec) in paths.iter().zip(vecs.iter()) {
-            let vec_json = serde_json::to_string(vec)?;
-            stmt.execute(params![path, vec_json])?;
+        for (i, path) in paths.iter().enumerate() {
+            let vec = &vecs[i];
+            let vec_json_result = serde_json::to_string(vec);
+
+            if let Ok(vec_json) = vec_json_result {
+                stmt.execute(params![path, vec_json])?;
+            }
         }
         Ok(())
     }
@@ -38,14 +51,23 @@ impl DbHandler {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT path, vector FROM files")?;
 
-        let files = stmt.query_map([], |row| {
+        let rows_iterator = stmt.query_map([], |row| {
             let path: String = row.get(0)?;
             let vec_str: String = row.get(1)?;
-            let vec: Vec<f32> = serde_json::from_str(&vec_str).unwrap();
-            Ok((path, vec))
-        })?
-            .filter_map(Result::ok)
-            .collect();
+            Ok((path, vec_str))
+        })?;
+
+        let mut files: Vec<(String, Vec<f32>)> = Vec::new();
+
+        for row_result in rows_iterator {
+            if let Ok((path, vec_str)) = row_result {
+                let vec_parsing_result: Result<Vec<f32>, _> = serde_json::from_str(&vec_str);
+
+                if let Ok(vec) = vec_parsing_result {
+                    files.push((path, vec));
+                }
+            }
+        }
 
         Ok(files)
     }
