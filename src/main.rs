@@ -5,7 +5,7 @@ use std::{
     any::Any,
     error::Error,
     fmt::Debug,
-    io::{Write, stdout},
+    io::{self, Write, stdout},
     path::PathBuf,
     time::SystemTime,
 };
@@ -196,27 +196,45 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     println!("\n");
 
-    // Demo searches
-    for query in [
-        // "code",
-        // "document",
-        // "Lab pdf",
-        // "api",
-        "magic", "CV", "homework", "school", "movie",
-    ] {
-        println!("Search: \"{}\"", query);
+    loop {
+        let mut input_line = String::new();
+        io::stdin()
+            .read_line(&mut input_line)
+            .expect("Failed to read line");
 
-        let query_embedding = model.embed(vec![query], None)?;
+        let query_embedding = model.embed(vec![input_line], None)?;
         let results = search_similar_files(&db, &query_embedding[0], 5)?;
 
         if results.is_empty() {
             println!("   No results found\n");
         } else {
             for (name, path, distance) in results.iter().rev() {
-                println!("   {:.4} \t| {} ({})", distance, name, path);
+                println!("{:},{},{}", distance, name, path);
             }
             println!();
         }
     }
+    // // Demo searches
+    // for query in [
+    //     // "code",
+    //     // "document",
+    //     // "Lab pdf",
+    //     // "api",
+    //     "magic", "CV", "homework", "school", "movie",
+    // ] {
+    //     println!("Search: \"{}\"", query);
+    //
+    //     let query_embedding = model.embed(vec![query], None)?;
+    //     let results = search_similar_files(&db, &query_embedding[0], 5)?;
+    //
+    //     if results.is_empty() {
+    //         println!("   No results found\n");
+    //     } else {
+    //         for (name, path, distance) in results.iter().rev() {
+    //             println!("   {:.4} \t| {} ({})", distance, name, path);
+    //         }
+    //         println!();
+    //     }
+    // }
     Ok(())
 }
