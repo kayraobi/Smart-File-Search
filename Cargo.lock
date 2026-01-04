@@ -3,17 +3,6 @@
 version = 4
 
 [[package]]
-name = "Smart-File-Search"
-version = "0.1.0"
-dependencies = [
- "fastembed",
- "rusqlite",
- "sqlite-vec",
- "walkdir",
- "zerocopy",
-]
-
-[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2253,6 +2242,19 @@ name = "smallvec"
 version = "2.0.0-alpha.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51d44cfb396c3caf6fbfd0ab422af02631b69ddd96d2eff0b0f0724f9024051b"
+
+[[package]]
+name = "smart_file_search"
+version = "0.1.0"
+dependencies = [
+ "fastembed",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sqlite-vec",
+ "walkdir",
+ "zerocopy",
+]
 
 [[package]]
 name = "socket2"

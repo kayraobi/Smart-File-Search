@@ -1,5 +1,5 @@
 [package]
-name = "Smart-File-Search"
+name = "smart_file_search"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,3 +9,5 @@ rusqlite = { version = "0.38.0", features = ["bundled"] }
 sqlite-vec = "0.1.6"
 zerocopy = "0.8.31"
 fastembed = "5.5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
