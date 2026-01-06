@@ -69,7 +69,7 @@ Search commands output JSONL to stdout:
 {"search":"test","results":[{"file_name":"test.txt","path":"/home/user/test.txt","distance":0.95}]}
 ```
 
-- `distance`: Cosine distance (0 = identical, 1 = unrelated, 2 = opposite)
+- `distance`: Cosine distance (0 = unrelated, 1 = identical, 2 = opposite)
 - `results`: Sorted by relevance (lowest distance first)
 - `path`: Absolute file path
 
